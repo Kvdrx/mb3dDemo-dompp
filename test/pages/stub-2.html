@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<head>
+  <style>
+    * { opacity: 1; }
+
+    h1 {
+      color: red;
+    }
+
+    h1.heading {
+      color: green;
+    }
+
+    .title {
+      font-size: 30px;
+      font-family: cursive;
+    }
+
+    .testElem {
+      background-color: blue;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      margin-left: 40px;
+      margin-right: 40px;
+      padding-top: 30px;
+      padding-bottom: 30px;
+      padding-right: 50px;
+      padding-left: 50px;
+      border-style: solid;
+      border-color: red;
+      border-width: 10px;
+      border-radius: 10px;
+    }
+    .displayElem {
+      width: 30%;
+      display: inline-block;
+    }
+    #dispVisiblity{
+      visibility: hidden;
+    }
+    #titlePositionDisp{
+      position: relative;
+      opacity: 1;
+    }
+    #rightContent{
+      float: right;
+    }
+    #leftContent{
+      float: left;
+    }
+  </style>
+  <title>Stub-2</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./css/style-stub-2.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">Dom-pp</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">Home</a></li>
+        <li><a href="#">Page 1</a></li>
+        <li><a href="#">Page 2</a></li>
+        <li><a href="#">Page 3</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h3 id="title" style="font-size: 30px; font-family: cursive;">
+      This page is used for extractiong various attributes of DOM elements!
+    </h3>
+    <h1 class="heading">Welcome to my sample page</h1>
+    <p class="testElem">Lorem ipsum dolor sit amet consectetur adipisicing elit. Consequuntur veniam nemo repellendus
+      provident adipisci eligendi eius repellat ab, voluptates numquam expedita autem est tempora praesentium laborum
+      dolores quam facilis distinctio!
+    </p>
+    <div>
+      <h1 id="titlePositionDisp">position and display of DOM elements</h1>
+      <div class="displayElem" id="rightContent">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto expedita sed pariatur, culpa doloremque obcaecati asperiores, at voluptatibus molestias atque dolorum inventore, ea in neque quidem nisi minima quisquam aperiam.</div>
+      <div class="displayElem" id="leftContent">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto expedita sed pariatur, culpa doloremque obcaecati asperiores, at voluptatibus molestias atque dolorum inventore, ea in neque quidem nisi minima quisquam aperiam.</div>
+      <div id="dispVisiblity"> Lorem ipsum dolor sit amet consectetur, adipisicing elit. Incidunt, reiciendis cum distinctio dolorem culpa quia libero aliquid veritatis doloremque in nisi consequuntur numquam ducimus? Ea sit voluptatum eligendi ipsum consequatur!</div>
+    </div>
+
+
+  </div>
+
+</body>
+
+</html>

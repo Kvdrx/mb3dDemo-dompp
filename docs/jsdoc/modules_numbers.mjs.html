@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: modules/numbers.mjs</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: modules/numbers.mjs</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+	A lineage library for DOM nodes
+	MIT License
+
+	Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
+	Eckinox Média and Université du Québec à Chicoutimi
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+*/
+
+// Local imports
+import { AtomicFunction } from "./atomic-function.mjs";
+//import { Value } from "./value.mjs";
+
+/**
+ * Function that checks the equality between two objects. Two objects o1 and o2
+ * are equal if one of these conditions hold:
+ * &lt;ul>
+ * &lt;li>they are both null&lt;/li>
+ * &lt;li>they are both non-null and:
+ * &lt;ol>
+ *   &lt;li>they represent the same numeric value, or&lt;/li>
+ *   &lt;li>they are the same string&lt;/li>
+ * &lt;/ol>&lt;/li>
+ * &lt;/ul>
+ * @extends AtomicFunction
+ */
+class IsEqualTo extends AtomicFunction {
+    constructor() {
+        super(2);
+    }
+
+    getValue() {
+        var o1 = arguments[0];
+        var o2 = arguments[1];
+        if (o1 == null &amp;&amp; o2 == null) {
+            return true;
+        }
+        if ((o1 == null &amp;&amp; o2 != null) || (o1 != null &amp;&amp; o2 == null)) {
+            return false;
+        }
+        if (typeof(o1) === "number" &amp;&amp; typeof(o2) === "number") {
+            return o1 === o2;
+        }
+        if (typeof(o1) === "string" &amp;&amp; typeof(o2) === "string") {
+            return o1 === o2;
+        }
+        return false;
+    }
+}
+
+/**
+ * Function that adds numbers.
+ * @extends AtomicFunction
+ */
+class Addition extends AtomicFunction {
+    constructor(arity = 2) {
+        super(arity);
+    }
+
+    getValue() {
+        var sum = 0;
+        for (var i = 0; i &lt; this.arity; i++) {
+            var o = arguments[i];
+            if (typeof(o) !== "number") {
+                throw "Invalid argument type";
+            }
+            sum += o;
+        }
+        return sum;
+    }
+
+    toString() {
+        return "Addition";
+    }
+}
+/**
+ * Function that substracts numbers.
+ * @extends AtomicFunction
+ */
+class Substraction extends AtomicFunction {
+    constructor(arity = 3) {
+        super(arity);
+    }
+
+    getValue() {
+        var sub = arguments[0];
+        for (var i = 1; i &lt; arguments.length; i++) {
+            var o = arguments[i];
+            if (typeof(o) !== "number") {
+                throw "Invalid argument type";
+            }
+            sub -= o
+        }
+        return sub;
+    }
+
+    toString() {
+        return "Substraction";
+    }
+}
+/**
+ * Function that multiplies numbers.
+ * @extends AtomicFunction
+ */
+class Multiplication extends AtomicFunction {
+    constructor(arity = 5) {
+        super(arity);
+    }
+    compute() {
+        if (arguments.length !== this.arity) {
+            throw "Invalid number of arguments";
+        }
+        var zero_values = [];
+        var zero_positions = []
+        var result = 1
+        for (var i = 0; i &lt; this.arity; i++) {
+            var o = arguments[i].getValue();
+            if (typeof(o) !== "number") {
+                throw "Invalid argument type";
+            }
+            if (o === 0) {
+                zero_values.push(arguments[i])
+                zero_positions.push(i)
+            } else {
+                result *= o;
+            }
+        }
+        return this.getZeroValue(zero_values, zero_positions, result);
+    }
+
+    getZeroValue(zero_values = [], zero_positions = [], result = null) {
+        if (zero_values.length === 0) {
+            return result;
+        } else {
+            console.log(`Position of the returned Zero is ${zero_positions} in the array`)
+            return parseFloat(zero_values);
+        }
+    }
+    toString() {
+        return "Multiplication";
+    }
+}
+/**
+ * Function that divides numbers.
+ * @extends AtomicFunction
+ */
+class Division extends AtomicFunction {
+    constructor(arity = 4) {
+        super(arity);
+    }
+
+    getValue() {
+        var div = arguments[0];
+        for (var i = 1; i &lt; arguments.length; i++) {
+            var o = arguments[i];
+            if (typeof(o) !== "number") {
+                throw "Invalid argument type";
+            }
+            div /= o
+        }
+        return div;
+    }
+
+    toString() {
+        return "Division";
+    }
+}
+
+/**
+ * Function that compares two numbers and returns true if the first
+ * is greater than the second.
+ * @extends AtomicFunction
+ */
+class GreaterThan extends AtomicFunction {
+    /**
+     * Creates a new instance of the function.
+     */
+    constructor() {
+        super(2);
+    }
+
+    getValue() {
+        var o1 = arguments[0];
+        var o2 = arguments[1];
+        if (typeof(o1) !== "number" || typeof(o2) !== "number") {
+            throw new Error(`Invalid argument type. GreaterThan expects both arguments to be numbers, but the following were received instead: ${typeof o1} (${JSON.stringify(o1)}) and ${typeof o2} (${JSON.stringify(o2)}).`);
+        }
+        return o1 > o2;
+    }
+
+    toString() {
+        return "&amp;gt;";
+    }
+}
+/**
+ * Function that compares two numbers and returns true if the first
+ * is Lesser than the second.
+ * @extends AtomicFunction
+ */
+class LesserThan extends AtomicFunction {
+    /**
+     * Creates a new instance of the function.
+     */
+    constructor() {
+        super(2);
+    }
+
+    getValue() {
+        var o1 = arguments[0];
+        var o2 = arguments[1];
+        if (typeof(o1) !== "number" || typeof(o2) !== "number") {
+            throw new Error(`Invalid argument type. LesserThan expects both arguments to be numbers, but the following were received instead: ${typeof o1} (${JSON.stringify(o1)}) and ${typeof o2} (${JSON.stringify(o2)}).`);
+        }
+        return o1 &lt; o2;
+    }
+
+    toString() {
+        return "&amp;lt;";
+    }
+}
+
+/**
+ * Function that compares two numbers and returns true if the first
+ * is greater than or equal to the second.
+ * @extends AtomicFunction
+ */
+class GreaterOrEqual extends AtomicFunction {
+    /**
+     * Creates a new instance of the function.
+     */
+    constructor() {
+        super(2);
+    }
+
+    getValue() {
+        var o1 = arguments[0];
+        var o2 = arguments[1];
+        if (typeof(o1) !== "number" || typeof(o2) !== "number") {
+            throw new Error(`Invalid argument type. GreaterOrEqual expects both arguments to be numbers, but the following were received instead: ${typeof o1} (${JSON.stringify(o1)}) and ${typeof o2} (${JSON.stringify(o2)}).`);
+        }
+        return o1 >= o2;
+    }
+
+    toString() {
+        return "&amp;ge;";
+    }
+}
+/**
+ * Function that compares two numbers and returns true if the first
+ * is Lesser than or equal to the second.
+ * @extends AtomicFunction
+ */
+class LesserOrEqual extends AtomicFunction {
+    /**
+     * Creates a new instance of the function.
+     */
+    constructor() {
+        super(2);
+    }
+
+    getValue() {
+        var o1 = arguments[0];
+        var o2 = arguments[1];
+        if (typeof(o1) !== "number" || typeof(o2) !== "number") {
+            throw new Error(`Invalid argument type. LesserOrEqual expects both arguments to be numbers, but the following were received instead: ${typeof o1} (${JSON.stringify(o1)}) and ${typeof o2} (${JSON.stringify(o2)}).`);
+        }
+        return o1 &lt;= o2;
+    }
+
+    toString() {
+        return "&amp;le;";
+    }
+}
+
+/**
+ * Package exports
+ */
+export { Addition, Substraction, Division, GreaterOrEqual, LesserOrEqual, GreaterThan, LesserThan, Multiplication, IsEqualTo };
+
+// :wrap=soft:tabSize=2:indentWidth=2:</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="AbstractFunction.html">AbstractFunction</a></li><li><a href="Addition.html">Addition</a></li><li><a href="All.html">All</a></li><li><a href="AndNode.html">AndNode</a></li><li><a href="Argument.html">Argument</a></li><li><a href="ArgumentValue.html">ArgumentValue</a></li><li><a href="AtomicFunction.html">AtomicFunction</a></li><li><a href="AtomicFunctionReturnValue.html">AtomicFunctionReturnValue</a></li><li><a href="BackgroundColor.html">BackgroundColor</a></li><li><a href="BackgroundImage.html">BackgroundImage</a></li><li><a href="BooleanAnd.html">BooleanAnd</a></li><li><a href="BooleanConnective.html">BooleanConnective</a></li><li><a href="BooleanNot.html">BooleanNot</a></li><li><a href="BooleanOr.html">BooleanOr</a></li><li><a href="BorderColor.html">BorderColor</a></li><li><a href="BorderRadius.html">BorderRadius</a></li><li><a href="BorderStyle.html">BorderStyle</a></li><li><a href="BorderWidth.html">BorderWidth</a></li><li><a href="Color.html">Color</a></li><li><a href="ComposedFunction.html">ComposedFunction</a></li><li><a href="ComposedFunctionValue.html">ComposedFunctionValue</a></li><li><a href="CompoundDesignator.html">CompoundDesignator</a></li><li><a href="ConstantDesignator.html">ConstantDesignator</a></li><li><a href="ConstantFunction.html">ConstantFunction</a></li><li><a href="ConstantValue.html">ConstantValue</a></li><li><a href="CssPropertyFunction.html">CssPropertyFunction</a></li><li><a href="DesignatedObject.html">DesignatedObject</a></li><li><a href="Designator.html">Designator</a></li><li><a href="DimensionHeight.html">DimensionHeight</a></li><li><a href="DimensionWidth.html">DimensionWidth</a></li><li><a href="Display.html">Display</a></li><li><a href="Division.html">Division</a></li><li><a href="ElementAttribute.html">ElementAttribute</a></li><li><a href="ElementAttributeValue.html">ElementAttributeValue</a></li><li><a href="Enumerate.html">Enumerate</a></li><li><a href="EnumeratedValue.html">EnumeratedValue</a></li><li><a href="ExistentialQuantifier.html">ExistentialQuantifier</a></li><li><a href="Explainer.html">Explainer</a></li><li><a href="FindBySelector.html">FindBySelector</a></li><li><a href="Float.html">Float</a></li><li><a href="FontFamily.html">FontFamily</a></li><li><a href="FontSize.html">FontSize</a></li><li><a href="FontWeight.html">FontWeight</a></li><li><a href="FunctionNamedArgument.html">FunctionNamedArgument</a></li><li><a href="GreaterOrEqual.html">GreaterOrEqual</a></li><li><a href="GreaterThan.html">GreaterThan</a></li><li><a href="Identity.html">Identity</a></li><li><a href="InputArgument.html">InputArgument</a></li><li><a href="IsEqualTo.html">IsEqualTo</a></li><li><a href="LesserOrEqual.html">LesserOrEqual</a></li><li><a href="LesserThan.html">LesserThan</a></li><li><a href="MarginBottom.html">MarginBottom</a></li><li><a href="MarginLeft.html">MarginLeft</a></li><li><a href="MarginRight.html">MarginRight</a></li><li><a href="MarginTop.html">MarginTop</a></li><li><a href="Multiplication.html">Multiplication</a></li><li><a href="NamedArgument.html">NamedArgument</a></li><li><a href="NamedArgumentValue.html">NamedArgumentValue</a></li><li><a href="NaryConjunctiveVerdict.html">NaryConjunctiveVerdict</a></li><li><a href="NaryDisjunctiveVerdict.html">NaryDisjunctiveVerdict</a></li><li><a href="NaryValue.html">NaryValue</a></li><li><a href="Nothing.html">Nothing</a></li><li><a href="NthItem.html">NthItem</a></li><li><a href="ObjectNode.html">ObjectNode</a></li><li><a href="Opacity.html">Opacity</a></li><li><a href="OrNode.html">OrNode</a></li><li><a href="PaddingBottom.html">PaddingBottom</a></li><li><a href="PaddingLeft.html">PaddingLeft</a></li><li><a href="PaddingRight.html">PaddingRight</a></li><li><a href="PaddingTop.html">PaddingTop</a></li><li><a href="Path.html">Path</a></li><li><a href="PathValue.html">PathValue</a></li><li><a href="Position.html">Position</a></li><li><a href="Quantifier.html">Quantifier</a></li><li><a href="QuantifierConjunctiveVerdict.html">QuantifierConjunctiveVerdict</a></li><li><a href="QuantifierDisjunctiveVerdict.html">QuantifierDisjunctiveVerdict</a></li><li><a href="QuantifierVerdict.html">QuantifierVerdict</a></li><li><a href="ReturnValue.html">ReturnValue</a></li><li><a href="Substraction.html">Substraction</a></li><li><a href="TraceabilityNode.html">TraceabilityNode</a></li><li><a href="Tracer.html">Tracer</a></li><li><a href="UniversalQuantifier.html">UniversalQuantifier</a></li><li><a href="Unknown.html">Unknown</a></li><li><a href="UnknownNode.html">UnknownNode</a></li><li><a href="Value.html">Value</a></li><li><a href="Verdict.html">Verdict</a></li><li><a href="Visibility.html">Visibility</a></li><li><a href="WebElementFunction.html">WebElementFunction</a></li><li><a href="Zindex.html">Zindex</a></li></ul><h3>Global</h3><ul><li><a href="global.html#evaluateDom">evaluateDom</a></li><li><a href="global.html#getVerdict">getVerdict</a></li><li><a href="global.html#same_object">same_object</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Wed Jun 23 2021 09:32:19 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

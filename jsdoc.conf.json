@@ -1,0 +1,26 @@
+{
+    "recurseDepth": 3,
+    "source": {
+        "include" : [".", "modules"],
+        "exclude" : ["node_modules", "test"],
+        "includePattern": ".+\\.m{0,1}js(doc|x)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "tags": {
+        "allowUnknownTags": true,
+        "dictionaries": ["jsdoc"]
+    },
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": false
+    },
+    "sourceType": "module",
+    "opts" : {
+        "encoding": "utf8",
+        "destination": "./docs/jsdoc",
+        "class-hierarchy": { "showList": true }
+    },
+    "plugins": [
+        "node_modules/jsdoc-class-hierarchy"
+      ]
+}

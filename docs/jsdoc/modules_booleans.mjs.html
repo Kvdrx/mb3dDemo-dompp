@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: modules/booleans.mjs</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: modules/booleans.mjs</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+	A lineage library for DOM nodes
+	MIT License
+
+	Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
+	Eckinox Média and Université du Québec à Chicoutimi
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+*/
+
+// Local imports
+import { InputArgument, ReturnValue } from "./function.mjs";
+import { AtomicFunction } from "./atomic-function.mjs";
+import { NaryValue } from "./value.mjs";
+import { CompoundDesignator } from "./designator.mjs";
+
+/**
+ * Abstract class representing the binary Boolean connectives "and" and "or".
+ * @extends AtomicFunction
+ */
+class BooleanConnective extends AtomicFunction {
+    constructor() {
+        super("arity");
+    }
+
+    compute() {
+        var false_values = [];
+        var false_positions = [];
+        var true_values = [];
+        var true_positions = [];
+        for (var i = 0; i &lt; arguments.length; i++) {
+            var o = arguments[i].getValue();
+            if (typeof(o) !== "boolean") {
+                throw "Invalid argument type";
+            }
+            if (o === true) {
+                true_values.push(arguments[i]);
+                true_positions.push(i);
+            } else {
+                false_values.push(arguments[i]);
+                false_positions.push(i);
+            }
+        }
+        return this.getBooleanValue(false_values, true_values, false_positions, true_positions);
+    }
+}
+
+/**
+ * An {@link NaryValue} that is linked to its input values through an "or"
+ * node.
+ * @extends NaryValue
+ */
+class NaryDisjunctiveVerdict extends NaryValue {
+    query(q, d, root, factory) {
+        var leaves = [];
+        var n = factory.getOrNode();
+        for (var i = 0; i &lt; this.values.length; i++) {
+            var new_d = CompoundDesignator.create(d.tail(), new InputArgument(this.positions[i]));
+            var sub_root = factory.getObjectNode(new_d, this.referenceFunction);
+            var sub_leaves = [];
+            sub_leaves = this.values[i].query(q, ReturnValue.instance, sub_root, factory);
+            leaves.push(...sub_leaves);
+            n.addChild(sub_root);
+        }
+        if (n.getChildren().length === 1) {
+            root.addChild(n.getChildren()[0]);
+        } else {
+            root.addChild(n);
+        }
+        return leaves;
+    }
+}
+
+/**
+ * An {@link NaryValue} that is linked to its input values through an "and"
+ * node.
+ * @extends NaryValue
+ */
+class NaryConjunctiveVerdict extends NaryValue {
+    constructor(value, values = [], positions = []) {
+        super(value, values, positions);
+    }
+
+    query(q, d, root, factory) {
+        var leaves = [];
+        var n = factory.getAndNode();
+        for (var i = 0; i &lt; this.values.length; i++) {
+            var new_d = CompoundDesignator.create(d.tail(), new InputArgument(this.positions[i]));
+            var sub_root = factory.getObjectNode(new_d, this.referenceFunction);
+            var sub_leaves = [];
+            sub_leaves = this.values[i].query(q, ReturnValue.instance, sub_root, factory);
+            leaves.push(...sub_leaves);
+            n.addChild(sub_root);
+        }
+        if (n.getChildren().length === 1) {
+            root.addChild(n.getChildren()[0]);
+        } else {
+            root.addChild(n);
+        }
+        return leaves;
+    }
+}
+
+/**
+ * The Boolean "and" function.
+ * @extends BooleanConnective
+ */
+class BooleanAnd extends BooleanConnective {
+    constructor(arity = 2) {
+            super(arity);
+        }
+        /**
+         * Gets the Boolean value.
+         * @param false_values
+         * @param true_values
+         * @param false_positions
+         * @param true_positions
+         */
+    getBooleanValue(false_values = [], true_values = [], false_positions = [], true_positions = []) {
+        if (false_values.length === 0) {
+            return new NaryConjunctiveVerdict(true, true_values, true_positions);
+        }
+        return new NaryDisjunctiveVerdict(false, false_values, false_positions);
+    }
+
+    toString() {
+        return "And";
+    }
+}
+
+/**
+ * The Boolean "or" function.
+ * @extends BooleanConnective
+ */
+class BooleanOr extends BooleanConnective {
+    constructor(arity = 2) {
+        super(arity);
+    }
+
+    getBooleanValue(false_values = [], true_values = [], false_positions = [], true_positions = []) {
+        if (true_values.length === 0) {
+            return new NaryConjunctiveVerdict(false, false_values, false_positions);
+        }
+        return new NaryDisjunctiveVerdict(true, true_values, true_positions);
+    }
+
+    toString() {
+        return "Or";
+    }
+}
+
+/**
+ * The Boolean "not" function.
+ * @extends AtomicFunction
+ */
+class BooleanNot extends AtomicFunction {
+    constructor() {
+        super(1);
+    }
+
+    getValue() {
+        if (typeof(arguments[0]) !== "boolean") {
+            throw "Invalid argument type";
+        }
+        return !arguments[0];
+    }
+
+    toString() {
+        return "Not";
+    }
+}
+
+/**
+ * Package exports
+ */
+export { BooleanAnd, BooleanNot, BooleanOr, NaryConjunctiveVerdict, NaryDisjunctiveVerdict };</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="AbstractFunction.html">AbstractFunction</a></li><li><a href="Addition.html">Addition</a></li><li><a href="All.html">All</a></li><li><a href="AndNode.html">AndNode</a></li><li><a href="Argument.html">Argument</a></li><li><a href="ArgumentValue.html">ArgumentValue</a></li><li><a href="AtomicFunction.html">AtomicFunction</a></li><li><a href="AtomicFunctionReturnValue.html">AtomicFunctionReturnValue</a></li><li><a href="BackgroundColor.html">BackgroundColor</a></li><li><a href="BackgroundImage.html">BackgroundImage</a></li><li><a href="BooleanAnd.html">BooleanAnd</a></li><li><a href="BooleanConnective.html">BooleanConnective</a></li><li><a href="BooleanNot.html">BooleanNot</a></li><li><a href="BooleanOr.html">BooleanOr</a></li><li><a href="BorderColor.html">BorderColor</a></li><li><a href="BorderRadius.html">BorderRadius</a></li><li><a href="BorderStyle.html">BorderStyle</a></li><li><a href="BorderWidth.html">BorderWidth</a></li><li><a href="Color.html">Color</a></li><li><a href="ComposedFunction.html">ComposedFunction</a></li><li><a href="ComposedFunctionValue.html">ComposedFunctionValue</a></li><li><a href="CompoundDesignator.html">CompoundDesignator</a></li><li><a href="ConstantDesignator.html">ConstantDesignator</a></li><li><a href="ConstantFunction.html">ConstantFunction</a></li><li><a href="ConstantValue.html">ConstantValue</a></li><li><a href="CssPropertyFunction.html">CssPropertyFunction</a></li><li><a href="DesignatedObject.html">DesignatedObject</a></li><li><a href="Designator.html">Designator</a></li><li><a href="DimensionHeight.html">DimensionHeight</a></li><li><a href="DimensionWidth.html">DimensionWidth</a></li><li><a href="Display.html">Display</a></li><li><a href="Division.html">Division</a></li><li><a href="ElementAttribute.html">ElementAttribute</a></li><li><a href="ElementAttributeValue.html">ElementAttributeValue</a></li><li><a href="Enumerate.html">Enumerate</a></li><li><a href="EnumeratedValue.html">EnumeratedValue</a></li><li><a href="ExistentialQuantifier.html">ExistentialQuantifier</a></li><li><a href="Explainer.html">Explainer</a></li><li><a href="FindBySelector.html">FindBySelector</a></li><li><a href="Float.html">Float</a></li><li><a href="FontFamily.html">FontFamily</a></li><li><a href="FontSize.html">FontSize</a></li><li><a href="FontWeight.html">FontWeight</a></li><li><a href="FunctionNamedArgument.html">FunctionNamedArgument</a></li><li><a href="GreaterOrEqual.html">GreaterOrEqual</a></li><li><a href="GreaterThan.html">GreaterThan</a></li><li><a href="Identity.html">Identity</a></li><li><a href="InputArgument.html">InputArgument</a></li><li><a href="IsEqualTo.html">IsEqualTo</a></li><li><a href="LesserOrEqual.html">LesserOrEqual</a></li><li><a href="LesserThan.html">LesserThan</a></li><li><a href="MarginBottom.html">MarginBottom</a></li><li><a href="MarginLeft.html">MarginLeft</a></li><li><a href="MarginRight.html">MarginRight</a></li><li><a href="MarginTop.html">MarginTop</a></li><li><a href="Multiplication.html">Multiplication</a></li><li><a href="NamedArgument.html">NamedArgument</a></li><li><a href="NamedArgumentValue.html">NamedArgumentValue</a></li><li><a href="NaryConjunctiveVerdict.html">NaryConjunctiveVerdict</a></li><li><a href="NaryDisjunctiveVerdict.html">NaryDisjunctiveVerdict</a></li><li><a href="NaryValue.html">NaryValue</a></li><li><a href="Nothing.html">Nothing</a></li><li><a href="NthItem.html">NthItem</a></li><li><a href="ObjectNode.html">ObjectNode</a></li><li><a href="Opacity.html">Opacity</a></li><li><a href="OrNode.html">OrNode</a></li><li><a href="PaddingBottom.html">PaddingBottom</a></li><li><a href="PaddingLeft.html">PaddingLeft</a></li><li><a href="PaddingRight.html">PaddingRight</a></li><li><a href="PaddingTop.html">PaddingTop</a></li><li><a href="Path.html">Path</a></li><li><a href="PathValue.html">PathValue</a></li><li><a href="Position.html">Position</a></li><li><a href="Quantifier.html">Quantifier</a></li><li><a href="QuantifierConjunctiveVerdict.html">QuantifierConjunctiveVerdict</a></li><li><a href="QuantifierDisjunctiveVerdict.html">QuantifierDisjunctiveVerdict</a></li><li><a href="QuantifierVerdict.html">QuantifierVerdict</a></li><li><a href="ReturnValue.html">ReturnValue</a></li><li><a href="Substraction.html">Substraction</a></li><li><a href="TraceabilityNode.html">TraceabilityNode</a></li><li><a href="Tracer.html">Tracer</a></li><li><a href="UniversalQuantifier.html">UniversalQuantifier</a></li><li><a href="Unknown.html">Unknown</a></li><li><a href="UnknownNode.html">UnknownNode</a></li><li><a href="Value.html">Value</a></li><li><a href="Verdict.html">Verdict</a></li><li><a href="Visibility.html">Visibility</a></li><li><a href="WebElementFunction.html">WebElementFunction</a></li><li><a href="Zindex.html">Zindex</a></li></ul><h3>Global</h3><ul><li><a href="global.html#evaluateDom">evaluateDom</a></li><li><a href="global.html#getVerdict">getVerdict</a></li><li><a href="global.html#same_object">same_object</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Wed Jun 23 2021 09:32:19 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "ForAll",
+    "contents": {
+      "variable": "$x",
+      "selector": "#h2",
+      "condition": "h2's width > 50"
+    }
+  },
+  {
+    "name": "height",
+    "contents": {
+      "variable": "$x",
+      "selector": "#h2",
+      "condition": "h2's width > 50"
+    }
+  }
+]

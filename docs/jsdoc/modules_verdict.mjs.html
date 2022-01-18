@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: modules/verdict.mjs</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: modules/verdict.mjs</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+	A lineage library for DOM nodes
+	MIT License
+
+	Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
+	Eckinox Média and Université du Québec à Chicoutimi
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+*/
+
+// Local imports
+import { AndNode, Explainer, ObjectNode, OrNode } from "./tracer.mjs";
+import { set_contains } from "./util.mjs";
+
+class TestDriver {
+    constructor() {
+        this.conditions = [];
+        if (arguments.length > 0) {
+            this.conditions = arguments;
+        }
+        this.returnedValues = [];
+    }
+
+    /**
+     * Adds a condition to evaluate
+     */
+    add() {
+        this.conditions.push(...arguments);
+    }
+
+    evaluateAll(o) {
+        this.returnedValues = [];
+        for (var i = 0; i &lt; this.conditions.length; i++) {
+            var v = this.conditions[i].evaluate(o);
+            this.returnedValues.push(v);
+        }
+    }
+
+    getResult() {
+        var verdicts = [];
+        for (var i = 0; i &lt; this.conditions.length; i++) {
+            verdicts.push(new Verdict(this.returnedValues[i], this.conditions[i]));
+        }
+        return new TestResult(...verdicts);
+    }
+}
+
+class TestCondition {
+    constructor(name, f) {
+        this.name = name;
+        this.function = f;
+    }
+
+    getName() {
+        return this.name;
+    }
+
+    /**
+     * Evaluates a test condition on a web element.
+     * @param e The web element on which to evaluate the test condition
+     * @return {Verdict} The result of the evaluation of the condition
+     */
+    evaluate(e) {
+        return this.function.evaluate(e);
+    }
+}
+
+class Verdict {
+    /**
+     * Creates a new verdict.
+     * @param v {Value} The return value of the test condition
+     * @param c {TestCondition} The test condition that was evaluated
+     */
+    constructor(v, c) {
+        this.value = v;
+        this.condition = c;
+    }
+
+    getCondition() {
+        return this.condition;
+    }
+
+    getValue() {
+        return this.value;
+    }
+
+    getResult() {
+        var o = this.value.getValue();
+        if (!o) {
+            return false;
+        }
+        return true;
+    }
+
+    getWitness() {
+        var list = [];
+        var root = Explainer.explain(this.value);
+        Verdict.pick(root, list);
+        return list;
+    }
+
+    /**
+     * Non-deterministically picks a set of objects that explain the verdict.
+     * The method is recursive and works as follows:
+     * &lt;ul>
+     * &lt;li>If the current node is an And node, call pick on all its
+     * children&lt;/li>
+     * &lt;li>If the current node is an Or node, call pick on one of its
+     * children&lt;/li>
+     * &lt;li>If the current node is a leaf ObjectNode, add it to the list&lt;/li>
+     * &lt;li>Otherwise, call pick on all children of the node&lt;/li>
+     * &lt;/ul>
+     * Non-determinism occurs because of the handling of the Or node. By
+     * construction, any set of elements produced by the method is one of the
+     * clauses of the tree when put in disjunctive normal form.
+     * @param n The current node
+     * @param list A list to which nodes are added
+     */
+    static pick(n, list, visited = []) {
+        if (set_contains(visited, n)) {
+            return;
+        }
+        visited.push(n);
+        if (n instanceof AndNode) {
+            for (var i = 0; i &lt; n.getChildren().length; i++) {
+                Verdict.pick(n.getChildren()[i], list, visited);
+            }
+        } else if (n instanceof OrNode) {
+            var test = true;
+            while (test) {
+                Verdict.pick(n.getChildren()[i], list, visited);
+                test = false;
+            }
+            /*
+            for (let i = 0; i &lt; n.getChildren().length; i++) {
+            	Verdict.pick(n.getChildren()[i], list, visited);
+            	break;
+            }
+            */
+        } else if (n instanceof ObjectNode) {
+            if (n.getChildren().length === 0) {
+                list.push(n.getDesignatedObject());
+            } else {
+                for (let i = 0; i &lt; n.getChildren().length; i++) {
+                    Verdict.pick(n.getChildren()[i], list, visited);
+                }
+            }
+        }
+    }
+}
+
+class TestResult {
+    constructor() {
+        this.verdicts = arguments;
+    }
+
+    getVerdicts() {
+        return this.verdicts;
+    }
+
+    getResult() {
+        for (var i = 0; i &lt; this.verdicts.length; i++) {
+            if (!this.verdicts[i].getResult()) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+/**
+ * Package exports
+ */
+export { TestCondition, TestDriver, TestResult, Verdict };
+
+// :wrap=soft:tabSize=2:indentWidth=2:</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="AbstractFunction.html">AbstractFunction</a></li><li><a href="Addition.html">Addition</a></li><li><a href="All.html">All</a></li><li><a href="AndNode.html">AndNode</a></li><li><a href="Argument.html">Argument</a></li><li><a href="ArgumentValue.html">ArgumentValue</a></li><li><a href="AtomicFunction.html">AtomicFunction</a></li><li><a href="AtomicFunctionReturnValue.html">AtomicFunctionReturnValue</a></li><li><a href="BackgroundColor.html">BackgroundColor</a></li><li><a href="BackgroundImage.html">BackgroundImage</a></li><li><a href="BooleanAnd.html">BooleanAnd</a></li><li><a href="BooleanConnective.html">BooleanConnective</a></li><li><a href="BooleanNot.html">BooleanNot</a></li><li><a href="BooleanOr.html">BooleanOr</a></li><li><a href="BorderColor.html">BorderColor</a></li><li><a href="BorderRadius.html">BorderRadius</a></li><li><a href="BorderStyle.html">BorderStyle</a></li><li><a href="BorderWidth.html">BorderWidth</a></li><li><a href="Color.html">Color</a></li><li><a href="ComposedFunction.html">ComposedFunction</a></li><li><a href="ComposedFunctionValue.html">ComposedFunctionValue</a></li><li><a href="CompoundDesignator.html">CompoundDesignator</a></li><li><a href="ConstantDesignator.html">ConstantDesignator</a></li><li><a href="ConstantFunction.html">ConstantFunction</a></li><li><a href="ConstantValue.html">ConstantValue</a></li><li><a href="CssPropertyFunction.html">CssPropertyFunction</a></li><li><a href="DesignatedObject.html">DesignatedObject</a></li><li><a href="Designator.html">Designator</a></li><li><a href="DimensionHeight.html">DimensionHeight</a></li><li><a href="DimensionWidth.html">DimensionWidth</a></li><li><a href="Display.html">Display</a></li><li><a href="Division.html">Division</a></li><li><a href="ElementAttribute.html">ElementAttribute</a></li><li><a href="ElementAttributeValue.html">ElementAttributeValue</a></li><li><a href="Enumerate.html">Enumerate</a></li><li><a href="EnumeratedValue.html">EnumeratedValue</a></li><li><a href="ExistentialQuantifier.html">ExistentialQuantifier</a></li><li><a href="Explainer.html">Explainer</a></li><li><a href="FindBySelector.html">FindBySelector</a></li><li><a href="Float.html">Float</a></li><li><a href="FontFamily.html">FontFamily</a></li><li><a href="FontSize.html">FontSize</a></li><li><a href="FontWeight.html">FontWeight</a></li><li><a href="FunctionNamedArgument.html">FunctionNamedArgument</a></li><li><a href="GreaterOrEqual.html">GreaterOrEqual</a></li><li><a href="GreaterThan.html">GreaterThan</a></li><li><a href="Identity.html">Identity</a></li><li><a href="InputArgument.html">InputArgument</a></li><li><a href="IsEqualTo.html">IsEqualTo</a></li><li><a href="LesserOrEqual.html">LesserOrEqual</a></li><li><a href="LesserThan.html">LesserThan</a></li><li><a href="MarginBottom.html">MarginBottom</a></li><li><a href="MarginLeft.html">MarginLeft</a></li><li><a href="MarginRight.html">MarginRight</a></li><li><a href="MarginTop.html">MarginTop</a></li><li><a href="Multiplication.html">Multiplication</a></li><li><a href="NamedArgument.html">NamedArgument</a></li><li><a href="NamedArgumentValue.html">NamedArgumentValue</a></li><li><a href="NaryConjunctiveVerdict.html">NaryConjunctiveVerdict</a></li><li><a href="NaryDisjunctiveVerdict.html">NaryDisjunctiveVerdict</a></li><li><a href="NaryValue.html">NaryValue</a></li><li><a href="Nothing.html">Nothing</a></li><li><a href="NthItem.html">NthItem</a></li><li><a href="ObjectNode.html">ObjectNode</a></li><li><a href="Opacity.html">Opacity</a></li><li><a href="OrNode.html">OrNode</a></li><li><a href="PaddingBottom.html">PaddingBottom</a></li><li><a href="PaddingLeft.html">PaddingLeft</a></li><li><a href="PaddingRight.html">PaddingRight</a></li><li><a href="PaddingTop.html">PaddingTop</a></li><li><a href="Path.html">Path</a></li><li><a href="PathValue.html">PathValue</a></li><li><a href="Position.html">Position</a></li><li><a href="Quantifier.html">Quantifier</a></li><li><a href="QuantifierConjunctiveVerdict.html">QuantifierConjunctiveVerdict</a></li><li><a href="QuantifierDisjunctiveVerdict.html">QuantifierDisjunctiveVerdict</a></li><li><a href="QuantifierVerdict.html">QuantifierVerdict</a></li><li><a href="ReturnValue.html">ReturnValue</a></li><li><a href="Substraction.html">Substraction</a></li><li><a href="TraceabilityNode.html">TraceabilityNode</a></li><li><a href="Tracer.html">Tracer</a></li><li><a href="UniversalQuantifier.html">UniversalQuantifier</a></li><li><a href="Unknown.html">Unknown</a></li><li><a href="UnknownNode.html">UnknownNode</a></li><li><a href="Value.html">Value</a></li><li><a href="Verdict.html">Verdict</a></li><li><a href="Visibility.html">Visibility</a></li><li><a href="WebElementFunction.html">WebElementFunction</a></li><li><a href="Zindex.html">Zindex</a></li></ul><h3>Global</h3><ul><li><a href="global.html#evaluateDom">evaluateDom</a></li><li><a href="global.html#getVerdict">getVerdict</a></li><li><a href="global.html#same_object">same_object</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Wed Jun 23 2021 09:32:19 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
