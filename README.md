@@ -16,7 +16,7 @@ git clone https://github.com/Kvdrx/mb3dDemo-dompp.git
 ## Install
 
 ```bash
-npm install dom-pp 
+npm install  
 ```
 
 ## Testing
