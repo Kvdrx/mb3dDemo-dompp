@@ -1,31 +1,34 @@
 /*
-	A lineage library for DOM nodes
-	MIT License
+    A lineage library for DOM nodes
+    MIT License
 
-	Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
-	Eckinox Média and Université du Québec à Chicoutimi
+    Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
+    Eckinox Média and Université du Québec à Chicoutimi
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
 */
 
 // Local imports
 import { CompoundDesignator, Designator } from "./designator.mjs";
+import { Explainer } from "./tracer.mjs";
+import { Verdict } from "./verdict.mjs";
+import { getTreeFromWitness } from "../index.mjs";
 
 /**
  * Object produced by the call(this) to a function, and whose lineage
@@ -34,7 +37,7 @@ import { CompoundDesignator, Designator } from "./designator.mjs";
 class Value {
     /*
     constructor() {
-    	// Nothing to do
+        // Nothing to do
     }
     */
 
@@ -67,18 +70,18 @@ class Value {
 
         for (const serializedParam of j.contents) {
 
-            if(typeof serializedParam == "object" && Object.keys(serializedParam).length == 2 
-            && typeof serializedParam.name != "undefined" && typeof serializedParam.contents != "undefined") {
+            if (typeof serializedParam == "object" && Object.keys(serializedParam).length == 2
+                && typeof serializedParam.name != "undefined" && typeof serializedParam.contents != "undefined") {
                 params.push(d.deserialize(serializedParam));
-            } 
-            else if(Array.isArray(serializedParam)) {
-                for(var i = 0; i<serializedParam.length; i++) {
-                    if(typeof serializedParam[i] == "object" && Object.keys(serializedParam[i]).length == 2 
-                    && typeof serializedParam[i].name != "undefined" && typeof serializedParam[i].contents != "undefined")
+            }
+            else if (Array.isArray(serializedParam)) {
+                for (var i = 0; i < serializedParam.length; i++) {
+                    if (typeof serializedParam[i] == "object" && Object.keys(serializedParam[i]).length == 2
+                        && typeof serializedParam[i].name != "undefined" && typeof serializedParam[i].contents != "undefined")
                         serializedParam[i] = d.deserialize(serializedParam[i]);
                 }
                 params.push(serializedParam);
-            } 
+            }
             else {
                 params.push(serializedParam);
             }
@@ -91,16 +94,16 @@ class Value {
         const serializedMembers = [];
 
         for (var member of this.members) {
-            if(typeof member == "object" && Value.isPrototypeOf(member.constructor)) {
+            if (typeof member == "object" && Value.isPrototypeOf(member.constructor)) {
                 serializedMembers.push(member.toJson());
-            } 
-            else if(Array.isArray(member)) {
-                for(var i = 0; i<member.length; i++) {
-                    if(typeof member[i] == "object" && Value.isPrototypeOf(member[i].constructor))
+            }
+            else if (Array.isArray(member)) {
+                for (var i = 0; i < member.length; i++) {
+                    if (typeof member[i] == "object" && Value.isPrototypeOf(member[i].constructor))
                         member[i] = member[i].toJson();
                 }
                 serializedMembers.push(member);
-            } 
+            }
             else {
                 serializedMembers.push(member);
             }
@@ -123,6 +126,19 @@ class Value {
             return o;
         }
         return new ConstantValue(o);
+    }
+
+    getStaticExplanation() {
+        var list = [];
+        var root = Explainer.explain(this);
+        Verdict.pick(root, list);
+        var tree = getTreeFromWitness(list);
+
+        var standardizedTree = tree.export(function(data){
+            return { elementAttribute: data.elementAttribute, part: data.part, subject: data.subject };
+        });
+
+        return standardizedTree;
     }
 }
 
@@ -199,7 +215,7 @@ class ConstantValue extends Value {
 class ConstantDesignator extends Designator {
     /*
     constructor() {
-    	super();
+        super();
     }
     */
 

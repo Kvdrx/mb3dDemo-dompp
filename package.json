@@ -45,13 +45,15 @@
     "webpack-cli": "^4.8.0"
   },
   "dependencies": {
+    "assert": "^2.0.0",
     "blockly": "^6.20210701.0",
     "chai": "^4.3.4",
     "chai-colors": "^1.0.1",
     "chai-dom": "^1.10.0",
     "data-tree": "^1.2.4",
     "jest": "^26.6.3",
-    "mocha": "^8.4.0"
+    "mocha": "^8.4.0",
+    "process": "^0.11.10"
   },
   "directories": {
     "doc": "docs",

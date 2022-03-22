@@ -1,4 +1,5 @@
 const { join } = require("path");
+const webpack = require ("webpack");
 
 module.exports = {
   entry: "./index.mjs",
@@ -19,5 +20,10 @@ module.exports = {
         ]
       }
     }]
-  }
+  },
+  plugins: [
+        new webpack.ProvidePlugin({
+               process: 'process/browser',
+        }),
+    ],
 };

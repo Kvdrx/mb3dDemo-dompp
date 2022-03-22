@@ -1,27 +1,27 @@
 /*
-	A lineage library for DOM nodes
-	MIT License
+    A lineage library for DOM nodes
+    MIT License
 
-	Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
-	Eckinox Média and Université du Québec à Chicoutimi
+    Copyright (c) 2020-2021 Amadou Ba, Sylvain Hallé
+    Eckinox Média and Université du Québec à Chicoutimi
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
 */
 
 /**
@@ -46,6 +46,7 @@ import { TestCondition, TestDriver, TestResult, Verdict } from "./modules/verdic
 import { isHtmlElement } from "./modules/util.mjs";
 import { Serialization } from "./modules/serialization.mjs";
 import { And, Current, Equals, Exists, Find, ForAll, Height, Implies, IsGreaterOrEqual, IsGreaterThan, IsLessOrEqual, IsLessThan, Minus, Not, Or, Plus, Register, Width } from './modules/syntax.mjs'
+import { strict as assert } from 'assert';
 
 
 /**
@@ -110,7 +111,7 @@ function getTreeFromWitness(witnesses = []) {
             subject = designatedObject.getObject();
             lastPartType = "ConstantDesignator";
         }
-        // Build the leaf's "part"
+        //  
         for (const element of designatedObject.getDesignator().elements) {
             if (element.constructor.name === lastPartType) {
                 break;
@@ -126,10 +127,38 @@ function getTreeFromWitness(witnesses = []) {
     return tree;
 }
 
+async function assertDomppCondition(condition, page, selector) {
+    const serializer = new Serialization();
+    const result = await page.evaluate((condName, serializedFunction, selector) => {
+        const serializer = new dompp.Serialization();
+        const func = serializer.deserialize(serializedFunction);
+        const cond = new dompp.TestCondition(condName, func);
+        const element = document.querySelector(selector);
+        const result = cond.evaluate(element);
+        const passed = result.getValue();
+        const explanation = result.getStaticExplanation();
+
+        return { passed: passed, explanation: explanation };
+
+    }, condition.name, serializer.serialize(condition.function), selector);
+    // pas le message exact juste pour un test 
+
+    if (!result.passed) {
+        const mess = "l'erreur est due à " + result.explanation.subject + result.explanation.elementAttribute + "qui se trouve " + result.explanation.part ;
+        throw new assert.AssertionError({
+            name: "dom-pp assertion error",
+            message: mess,
+            operator: 'Equal',
+            actual: true,
+            expected: false,
+        });
+    }
+}
+
 function serializeArray(array) {
     var res = [];
     var s = new Serialization();
-    for(let i=0; i<array.length; i++ ) {
+    for (let i = 0; i < array.length; i++) {
         res.push(s.serialize(array[i]));
     }
     return res;
@@ -138,7 +167,7 @@ function serializeArray(array) {
 function deserializeArray(array) {
     var res = [];
     var s = new Serialization();
-    for(let i=0; i<array.length; i++) {
+    for (let i = 0; i < array.length; i++) {
         res.push(s.deserialize(array[i]));
     }
     return res;
@@ -153,6 +182,7 @@ export {
     getTreeFromWitness,
     serializeArray,
     deserializeArray,
+    assertDomppCondition,
     AbstractFunction,
     Addition,
     All,

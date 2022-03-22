@@ -417,4 +417,4 @@ describe("Boolean tests", () => {
     });
 });
 
-// :wrap=soft:tabSize=2:indentWidth=2:
+ //:wrap=soft:tabSize=2:indentWidth=2:
